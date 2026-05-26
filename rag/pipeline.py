@@ -141,21 +141,23 @@ Grounded Response:"""
             return response.text.strip(), prompt, generation_time
         except Exception as e:
             # Self-healing API fallback logic for 404 endpoints
-            if "404" in str(e) and self.model_name == "gemini-1.5-flash":
-                print("Model gemini-1.5-flash returned 404. Attempting automatic self-healing fallback to gemini-1.5-flash-latest...")
-                try:
-                    self.model_name = "gemini-1.5-flash-latest"
-                    model = genai.GenerativeModel("gemini-1.5-flash-latest")
-                    response = model.generate_content(
-                        prompt,
-                        generation_config=genai.types.GenerationConfig(
-                            temperature=0.0
+            if "404" in str(e):
+                # If any of the flash models failed, try gemini-pro (universally available stable model)
+                if self.model_name in ["gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-1.5-pro"]:
+                    print(f"Model {self.model_name} returned 404. Attempting automatic self-healing fallback to stable gemini-pro...")
+                    try:
+                        self.model_name = "gemini-pro"
+                        model = genai.GenerativeModel("gemini-pro")
+                        response = model.generate_content(
+                            prompt,
+                            generation_config=genai.types.GenerationConfig(
+                                temperature=0.0
+                            )
                         )
-                    )
-                    generation_time = time.time() - start_time
-                    return response.text.strip(), prompt, generation_time
-                except Exception as e2:
-                    print(f"Fallback model failed: {str(e2)}")
+                        generation_time = time.time() - start_time
+                        return response.text.strip(), prompt, generation_time
+                    except Exception as e2:
+                        print(f"Stable fallback model gemini-pro also failed: {str(e2)}")
             generation_time = time.time() - start_time
             return f"Error during answer generation: {str(e)}", prompt, generation_time
 
