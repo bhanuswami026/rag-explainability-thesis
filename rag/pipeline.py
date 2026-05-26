@@ -37,7 +37,7 @@ class RAGPipeline:
         # Initialize Gemini API
         self.api_key = os.getenv("GEMINI_API_KEY")
         if self.api_key:
-            genai.configure(api_key=self.api_key, client_options={'api_version': 'v1'})
+            genai.configure(api_key=self.api_key, api_version='v1')
             print("Gemini API client configured successfully using stable v1 version.")
         else:
             print("WARNING: GEMINI_API_KEY not found in environment variables. Gemini calls will fail.")
@@ -47,7 +47,7 @@ class RAGPipeline:
         Dynamically configures Gemini API key from UI input.
         """
         self.api_key = api_key
-        genai.configure(api_key=api_key, client_options={'api_version': 'v1'})
+        genai.configure(api_key=api_key, api_version='v1')
         print("Gemini API key updated dynamically using stable v1 version.")
 
     def ingest_document_bytes(self, file_bytes: bytes, filename: str) -> int:
