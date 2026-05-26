@@ -83,7 +83,7 @@ with st.sidebar:
         
     model_name_input = st.selectbox(
         "Gemini Model",
-        options=["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro", "gemini-1.5-flash-latest"],
+        options=["gemini-1.5-flash-latest", "gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro"],
         index=0,
         help="Select the Gemini model to use. If one model returns a 404 in your region/account, try 'gemini-1.5-flash-latest' or 'gemini-pro'."
     )

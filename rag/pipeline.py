@@ -140,6 +140,22 @@ Grounded Response:"""
             generation_time = time.time() - start_time
             return response.text.strip(), prompt, generation_time
         except Exception as e:
+            # Self-healing API fallback logic for 404 endpoints
+            if "404" in str(e) and self.model_name == "gemini-1.5-flash":
+                print("Model gemini-1.5-flash returned 404. Attempting automatic self-healing fallback to gemini-1.5-flash-latest...")
+                try:
+                    self.model_name = "gemini-1.5-flash-latest"
+                    model = genai.GenerativeModel("gemini-1.5-flash-latest")
+                    response = model.generate_content(
+                        prompt,
+                        generation_config=genai.types.GenerationConfig(
+                            temperature=0.0
+                        )
+                    )
+                    generation_time = time.time() - start_time
+                    return response.text.strip(), prompt, generation_time
+                except Exception as e2:
+                    print(f"Fallback model failed: {str(e2)}")
             generation_time = time.time() - start_time
             return f"Error during answer generation: {str(e)}", prompt, generation_time
 
