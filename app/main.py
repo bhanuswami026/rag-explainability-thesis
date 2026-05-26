@@ -96,9 +96,16 @@ with st.sidebar:
         
     model_name_input = st.selectbox(
         "LLM Provider & Model",
-        options=["gemini-1.5-flash", "gemini-1.5-pro", "gpt-4o-mini", "gpt-4o"],
+        options=[
+            "gemini-1.5-flash", 
+            "gemini-2.0-flash", 
+            "gemini-1.5-flash-latest", 
+            "gemini-1.5-pro", 
+            "gpt-4o-mini", 
+            "gpt-4o"
+        ],
         index=0,
-        help="Select the model to use. If you face region/quota limits with Gemini, try 'gpt-4o-mini'!"
+        help="Select the model. All Gemini models are 100% free under the Google AI Studio free tier!"
     )
     
     is_openai_model = model_name_input.startswith("gpt-")

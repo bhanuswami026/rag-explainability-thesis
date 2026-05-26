@@ -204,7 +204,7 @@ Grounded Response:"""
             # Self-healing API fallback logic for 404 endpoints
             if "404" in str(e):
                 # If any of the flash models failed, try gemini-pro (universally available stable model)
-                if self.model_name in ["gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-1.5-pro"]:
+                if self.model_name in ["gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-1.5-pro", "gemini-2.0-flash"]:
                     print(f"Model {self.model_name} returned 404. Attempting automatic self-healing fallback to stable gemini-pro...")
                     try:
                         self.model_name = "gemini-pro"
