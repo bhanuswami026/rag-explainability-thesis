@@ -57,6 +57,8 @@ with st.sidebar:
         """
         **Project**: Explainability of RAG Systems using post-hoc interpretability methods.
         
+        **Researcher**: Divya Sharma
+        
         **Degree**: Master of Technology (M.Tech)
         """
     )
