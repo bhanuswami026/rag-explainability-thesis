@@ -24,7 +24,7 @@ class RAGPipeline:
     Also measures operational latency at each step to support performance profile evaluation.
     """
     
-    def __init__(self, chunk_size: int = 500, chunk_overlap: int = 100):
+    def __init__(self, chunk_size: int = 500, chunk_overlap: int = 100, model_name: str = "gemini-1.5-flash"):
         """
         Initializes the pipeline elements.
         """
@@ -32,6 +32,7 @@ class RAGPipeline:
         self.chunker = DocumentChunker(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
         self.embedder = BGEEmbedder()
         self.vector_store = FAISSVectorStore(dimension=self.embedder.dimension)
+        self.model_name = model_name
         
         # Initialize Gemini API
         self.api_key = os.getenv("GEMINI_API_KEY")
@@ -128,8 +129,8 @@ Grounded Response:"""
 
         start_time = time.time()
         try:
-            # Use gemini-1.5-flash for lightning fast execution
-            model = genai.GenerativeModel("gemini-1.5-flash")
+            # Dynamically select configured Gemini model
+            model = genai.GenerativeModel(self.model_name)
             response = model.generate_content(
                 prompt,
                 generation_config=genai.types.GenerationConfig(

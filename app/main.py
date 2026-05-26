@@ -81,6 +81,13 @@ with st.sidebar:
         st.session_state.api_configured = False
         st.warning("Please configure your Gemini API Key to enable answer generation.")
         
+    model_name_input = st.selectbox(
+        "Gemini Model",
+        options=["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro", "gemini-1.5-flash-latest"],
+        index=0,
+        help="Select the Gemini model to use. If one model returns a 404 in your region/account, try 'gemini-1.5-flash-latest' or 'gemini-pro'."
+    )
+        
     st.markdown("### 2. Pipeline Controls")
     chunk_size = st.slider("Chunk Size (Chars)", min_value=200, max_value=1200, value=600, step=100)
     chunk_overlap = st.slider("Chunk Overlap (Chars)", min_value=50, max_value=400, value=150, step=50)
@@ -90,7 +97,13 @@ with st.sidebar:
        st.session_state.pipeline.chunker.chunk_size != chunk_size or \
        st.session_state.pipeline.chunker.chunk_overlap != chunk_overlap:
         with st.spinner("Initializing Local BGE Embedding Model (First time might take a minute)..."):
-            st.session_state.pipeline = RAGPipeline(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+            st.session_state.pipeline = RAGPipeline(
+                chunk_size=chunk_size, 
+                chunk_overlap=chunk_overlap,
+                model_name=model_name_input
+            )
+    else:
+        st.session_state.pipeline.model_name = model_name_input
             
     if st.session_state.api_configured:
         st.session_state.pipeline.configure_gemini(st.session_state.gemini_key)
