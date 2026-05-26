@@ -68,10 +68,18 @@ with st.sidebar:
     
     env_key = os.getenv("GEMINI_API_KEY", "")
     api_key_input = st.text_input(
-        "Google Gemini API Key",
+        "Google Gemini API Key (Optional)",
         value=env_key if env_key else st.session_state.get("gemini_key", ""),
         type="password",
-        help="Obtain an API key from Google AI Studio. Critical for response generation."
+        help="Obtain an API key from Google AI Studio. Required for Gemini models."
+    )
+    
+    env_openai_key = os.getenv("OPENAI_API_KEY", "")
+    openai_key_input = st.text_input(
+        "OpenAI API Key (Optional)",
+        value=env_openai_key if env_openai_key else st.session_state.get("openai_key", ""),
+        type="password",
+        help="Obtain an API key from OpenAI. Required if using GPT models."
     )
     
     if api_key_input:
@@ -79,14 +87,25 @@ with st.sidebar:
         st.session_state.api_configured = True
     else:
         st.session_state.api_configured = False
-        st.warning("Please configure your Gemini API Key to enable answer generation.")
+        
+    if openai_key_input:
+        st.session_state.openai_key = openai_key_input
+        st.session_state.openai_configured = True
+    else:
+        st.session_state.openai_configured = False
         
     model_name_input = st.selectbox(
-        "Gemini Model",
-        options=["gemini-1.5-flash", "gemini-1.5-pro"],
+        "LLM Provider & Model",
+        options=["gemini-1.5-flash", "gemini-1.5-pro", "gpt-4o-mini", "gpt-4o"],
         index=0,
-        help="Select the Gemini model to use. 'gemini-1.5-flash' is the preferred default. 'gemini-1.5-pro' is recommended for complex reasoning."
+        help="Select the model to use. If you face region/quota limits with Gemini, try 'gpt-4o-mini'!"
     )
+    
+    is_openai_model = model_name_input.startswith("gpt-")
+    if is_openai_model and not st.session_state.get("openai_configured", False):
+        st.warning("Please configure your OpenAI API Key to enable GPT generation.")
+    elif not is_openai_model and not st.session_state.get("api_configured", False):
+        st.warning("Please configure your Gemini API Key to enable Gemini generation.")
         
     st.markdown("### 2. Pipeline Controls")
     chunk_size = st.slider("Chunk Size (Chars)", min_value=200, max_value=1200, value=600, step=100)
@@ -105,8 +124,11 @@ with st.sidebar:
     else:
         st.session_state.pipeline.model_name = model_name_input
             
-    if st.session_state.api_configured:
+    if st.session_state.api_configured and not is_openai_model:
         st.session_state.pipeline.configure_gemini(st.session_state.gemini_key)
+        
+    if st.session_state.get("openai_configured", False) and is_openai_model:
+        st.session_state.pipeline.configure_openai(st.session_state.openai_key)
         
     st.markdown("### 3. Document Ingestion")
     uploaded_file = st.file_uploader("Upload reference PDF thesis document", type=["pdf"])

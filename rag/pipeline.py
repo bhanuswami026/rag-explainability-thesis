@@ -7,6 +7,7 @@ import time
 import os
 from typing import List, Dict, Any, Tuple
 import google.generativeai as genai
+import openai
 from dotenv import load_dotenv
 
 from rag.parser import PDFParser
@@ -44,6 +45,13 @@ class RAGPipeline:
             print("Gemini API client configured successfully using stable v1 endpoints.")
         else:
             print("WARNING: GEMINI_API_KEY not found in environment variables. Gemini calls will fail.")
+            
+        # Initialize OpenAI API
+        self.openai_api_key = os.getenv("OPENAI_API_KEY")
+        self.openai_client = None
+        if self.openai_api_key:
+            self.openai_client = openai.OpenAI(api_key=self.openai_api_key)
+            print("OpenAI API client configured successfully.")
 
     def configure_gemini(self, api_key: str):
         """
@@ -55,6 +63,14 @@ class RAGPipeline:
         self.api_key = api_key
         genai.configure(api_key=api_key)
         print("Gemini API key updated dynamically using stable v1 endpoints.")
+
+    def configure_openai(self, api_key: str):
+        """
+        Dynamically configures OpenAI API key from UI input.
+        """
+        self.openai_api_key = api_key
+        self.openai_client = openai.OpenAI(api_key=api_key)
+        print("OpenAI API key updated dynamically.")
 
     def ingest_document_bytes(self, file_bytes: bytes, filename: str) -> int:
         """
@@ -101,7 +117,7 @@ class RAGPipeline:
 
     def generate_answer_with_context(self, query: str, contexts: List[str]) -> Tuple[str, str, float]:
         """
-        Calls the Gemini model to synthesize a response using the retrieved contexts.
+        Calls the Gemini or OpenAI model to synthesize a response using the retrieved contexts.
         
         Args:
             query (str): The search query.
@@ -110,6 +126,46 @@ class RAGPipeline:
         Returns:
             Tuple[str, str, float]: (Generated Answer, Formatted Prompt, Latency in seconds)
         """
+        # Structure the system prompt and retrieve-augmented context
+        context_str = "\n\n".join([f"--- Context Segment {idx+1} ---\n{ctx}" for idx, ctx in enumerate(contexts)])
+        
+        # 1. Route to OpenAI if a GPT model is selected
+        if self.model_name.startswith("gpt-"):
+            if not self.openai_api_key or not self.openai_client:
+                return (
+                    "Error: OpenAI API Key is missing. Please configure it in the sidebar or set OPENAI_API_KEY in the .env file.",
+                    "",
+                    0.0
+                )
+            
+            prompt = f"Retrieved Context Segments:\n{context_str}\n\nUser Query:\n{query}"
+            start_time = time.time()
+            try:
+                response = self.openai_client.chat.completions.create(
+                    model=self.model_name,
+                    messages=[
+                        {
+                            "role": "system", 
+                            "content": (
+                                "You are an advanced Retrieval-Augmented Generation (RAG) assistant. "
+                                "Synthesize a precise, accurate, and completely grounded response to the user's "
+                                "query based ONLY on the provided context segments. If the information needed is "
+                                "not present, clearly state that the document does not contain the answer. "
+                                "Do not use outside knowledge."
+                            )
+                        },
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.0
+                )
+                generation_time = time.time() - start_time
+                prompt_mimic = f"System Instruction: Grounded RAG Assistant\n\nPrompt Context:\n{context_str}\n\nQuery:\n{query}"
+                return response.choices[0].message.content.strip(), prompt_mimic, generation_time
+            except Exception as e:
+                generation_time = time.time() - start_time
+                return f"Error during OpenAI answer generation: {str(e)}", "", generation_time
+                
+        # 2. Route to Google Gemini if selected
         if not self.api_key:
             return (
                 "Error: Gemini API Key is missing. Please configure it in the sidebar or set GEMINI_API_KEY in the .env file.",
@@ -117,8 +173,7 @@ class RAGPipeline:
                 0.0
             )
             
-        # Structure the system prompt and retrieve-augmented context
-        context_str = "\n\n".join([f"--- Context Segment {idx+1} ---\n{ctx}" for idx, ctx in enumerate(contexts)])
+        # Prompt formulation using the precomputed context_str
         
         prompt = f"""You are an advanced Retrieval-Augmented Generation (RAG) assistant. 
 Synthesize a precise, accurate, and completely grounded response to the user's query based ONLY on the provided context segments below.
