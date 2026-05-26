@@ -34,11 +34,14 @@ class RAGPipeline:
         self.vector_store = FAISSVectorStore(dimension=self.embedder.dimension)
         self.model_name = model_name
         
-        # Initialize Gemini API
+        # Set stable v1 API endpoints via system environment variables before configuring genai
+        os.environ["GOOGLE_API_VERSION"] = "v1"
+        os.environ["API_VERSION"] = "v1"
+        
         self.api_key = os.getenv("GEMINI_API_KEY")
         if self.api_key:
-            genai.configure(api_key=self.api_key, api_version='v1')
-            print("Gemini API client configured successfully using stable v1 version.")
+            genai.configure(api_key=self.api_key)
+            print("Gemini API client configured successfully using stable v1 endpoints.")
         else:
             print("WARNING: GEMINI_API_KEY not found in environment variables. Gemini calls will fail.")
 
@@ -46,9 +49,12 @@ class RAGPipeline:
         """
         Dynamically configures Gemini API key from UI input.
         """
+        os.environ["GOOGLE_API_VERSION"] = "v1"
+        os.environ["API_VERSION"] = "v1"
+        
         self.api_key = api_key
-        genai.configure(api_key=api_key, api_version='v1')
-        print("Gemini API key updated dynamically using stable v1 version.")
+        genai.configure(api_key=api_key)
+        print("Gemini API key updated dynamically using stable v1 endpoints.")
 
     def ingest_document_bytes(self, file_bytes: bytes, filename: str) -> int:
         """
