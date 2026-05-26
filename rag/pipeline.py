@@ -6,7 +6,8 @@ Integrates Parser, Chunker, Embedder, FAISS Vector Store, and Google Gemini API.
 import time
 import os
 from typing import List, Dict, Any, Tuple
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 import openai
 from dotenv import load_dotenv
 
@@ -35,14 +36,11 @@ class RAGPipeline:
         self.vector_store = FAISSVectorStore(dimension=self.embedder.dimension)
         self.model_name = model_name
         
-        # Set stable v1 API endpoints via system environment variables before configuring genai
-        os.environ["GOOGLE_API_VERSION"] = "v1"
-        os.environ["API_VERSION"] = "v1"
-        
         self.api_key = os.getenv("GEMINI_API_KEY")
+        self.gemini_client = None
         if self.api_key:
-            genai.configure(api_key=self.api_key)
-            print("Gemini API client configured successfully using stable v1 endpoints.")
+            self.gemini_client = genai.Client(api_key=self.api_key, http_options={'api_version': 'v1'})
+            print("Gemini Gen AI Client configured successfully using stable v1 endpoints.")
         else:
             print("WARNING: GEMINI_API_KEY not found in environment variables. Gemini calls will fail.")
             
@@ -57,12 +55,9 @@ class RAGPipeline:
         """
         Dynamically configures Gemini API key from UI input.
         """
-        os.environ["GOOGLE_API_VERSION"] = "v1"
-        os.environ["API_VERSION"] = "v1"
-        
         self.api_key = api_key
-        genai.configure(api_key=api_key)
-        print("Gemini API key updated dynamically using stable v1 endpoints.")
+        self.gemini_client = genai.Client(api_key=api_key, http_options={'api_version': 'v1'})
+        print("Gemini Gen AI Client updated dynamically using stable v1 endpoints.")
 
     def configure_openai(self, api_key: str):
         """
@@ -190,11 +185,11 @@ Grounded Response:"""
 
         start_time = time.time()
         try:
-            # Dynamically select configured Gemini model
-            model = genai.GenerativeModel(self.model_name)
-            response = model.generate_content(
-                prompt,
-                generation_config=genai.types.GenerationConfig(
+            # Dynamically select configured Gemini model using modern SDK client
+            response = self.gemini_client.models.generate_content(
+                model=self.model_name,
+                contents=prompt,
+                config=types.GenerateContentConfig(
                     temperature=0.0  # Crucial for deterministic/explainable generation
                 )
             )
@@ -208,10 +203,10 @@ Grounded Response:"""
                     print(f"Model {self.model_name} returned 404. Attempting automatic self-healing fallback to stable gemini-pro...")
                     try:
                         self.model_name = "gemini-pro"
-                        model = genai.GenerativeModel("gemini-pro")
-                        response = model.generate_content(
-                            prompt,
-                            generation_config=genai.types.GenerationConfig(
+                        response = self.gemini_client.models.generate_content(
+                            model="gemini-pro",
+                            contents=prompt,
+                            config=types.GenerateContentConfig(
                                 temperature=0.0
                             )
                         )
