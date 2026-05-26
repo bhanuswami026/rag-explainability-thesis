@@ -83,9 +83,9 @@ with st.sidebar:
         
     model_name_input = st.selectbox(
         "Gemini Model",
-        options=["gemini-pro", "gemini-1.5-flash-latest", "gemini-1.5-flash", "gemini-1.5-pro"],
+        options=["gemini-1.5-flash", "gemini-1.5-pro"],
         index=0,
-        help="Select the Gemini model to use. 'gemini-pro' (Gemini 1.0 Pro) is universally supported on all developer keys. If you have newer access, you can choose 'gemini-1.5-flash-latest'."
+        help="Select the Gemini model to use. 'gemini-1.5-flash' is the preferred default. 'gemini-1.5-pro' is recommended for complex reasoning."
     )
         
     st.markdown("### 2. Pipeline Controls")
